@@ -2,7 +2,7 @@
 //
 
 #include <windows.h>
-#include <time.h>
+#include <ctime>
 #include <stdio.h>
 #include <vector>
 #include "siec.h"
@@ -11,7 +11,7 @@
 struct StanObiektu
 {
 	int iID;                  // identyfikator obiektu
-	Wektor3 wPol;             // polozenie obiektu (œrodka geometrycznego obiektu) 
+	Wektor3 wPol;             // polozenie obiektu (Å“rodka geometrycznego obiektu) 
 	kwaternion qOrient;       // orientacja (polozenie katowe)
 	Wektor3 wV, wA;            // predkosc, przyspiesznie liniowe
 	Wektor3 wV_kat, wA_kat;   // predkosc i przyspieszenie liniowe
@@ -21,7 +21,7 @@ struct StanObiektu
 enum typy_ramek { STAN_OBIEKTU, INFO_O_ZAMKNIECIU, OFERTA };
 
 
-struct Ramka                                    // g³ówna struktura s³u¿¹ca do przesy³ania informacji
+struct Ramka                                    // gÂ³Ã³wna struktura sÂ³uÂ¿Â¹ca do przesyÂ³ania informacji
 {
 	int typ;
 	StanObiektu stan;
@@ -45,6 +45,15 @@ struct Klient {
 	}
 };
 
+void print_ip(int ip)
+{
+	unsigned char bytes[4];
+	bytes[0] = ip & 0xFF;
+	bytes[1] = (ip >> 8) & 0xFF;
+	bytes[2] = (ip >> 16) & 0xFF;
+	bytes[3] = (ip >> 24) & 0xFF;
+	printf("%d.%d.%d.%d\n", bytes[0], bytes[1], bytes[2], bytes[3]);
+}
 
 
 int main()
@@ -59,7 +68,7 @@ int main()
 		bool found = false;
 		switch (ramka.typ) {
 		case typy_ramek::STAN_OBIEKTU:
-			printf("stan");
+			// printf("stan");
 			for (int i = 0; i < klienci.size(); i++) {
 				if (klienci[i] == adres) {
 					found = true;
@@ -69,11 +78,12 @@ int main()
 
 			if (!found) {
 				klienci.push_back(adres);
-				printf("Connected %lu", adres);
+				printf("Connected ");
+				print_ip(adres);
 			}
 
 			for (int i = 0; i < klienci.size(); i++) {
-				printf("To %lu (%d)\n", klienci[i], klienci.size());
+				// printf("To %lu (%d)\n", klienci[i], klienci.size());
 				uni_send->send((char*)&ramka, klienci[i], sizeof(Ramka));
 			}
 			break;
@@ -83,31 +93,20 @@ int main()
 			for (int i = 0; i < klienci.size(); i++)
 			{
 				if (klienci[i] == adres) {
-					printf("WYPIERDALAM TYPA Z SERWEERA !!!!!!!!! %d\n", klienci[i]);
+					printf("Disconnected ");
+					print_ip(klienci[i]);
 					ramka.typ = INFO_O_ZAMKNIECIU;
 					uni_send->send((char*)&ramka, klienci[i], sizeof(Ramka));
-					for (int i = 0; i < klienci.size(); i++) {
-						if (klienci[i] == adres) {
-							klienci.erase(klienci.begin() + i);
-						}
-					}
+					klienci.erase(klienci.begin() + i);
 				}
 
-			}
-			for (int i = 0; i < klienci.size(); i++)
-			{
-				if (klienci[i] == adres) {
-					printf("Klient %ul SPIERDOLIL  \n", adres);
-					klienci[i] = -1;
-					//break;
-				}
 			}
 			break;
 		}
 
 		
 		if (klienci.size() == 0) {
-			printf("BRAK TYCH SKURWYSYNOW!!!!!");
+			printf("No more players");
 			break;
 		}
 	}
