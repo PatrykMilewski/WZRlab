@@ -18,22 +18,18 @@ struct StanObiektu
 	float masa;
 };
 
-enum typy_ramek { STAN_OBIEKTU, INFO_O_ZAMKNIECIU, OFERTA };
+enum typy_ramek { STAN_OBIEKTU, INFO_O_ZAMKNIECIU, OFERTA_ZAMIANY, OFERTA_AKCEPTACJA, OFERTA_ODRZUCENIE };
 
 
 struct Ramka                                    // g³ówna struktura s³u¿¹ca do przesy³ania informacji
 {
 	int typ;
 	StanObiektu stan;
-	float wartosc_oferty;
+	int idOdbiorcy;
 };
 
 unicast_net *uni_receive;
 unicast_net *uni_send;
-
-std::vector<unsigned long> klienci;
-Ramka ramka;
-StanObiektu stan;
 
 struct Klient {
 	unsigned long add;
@@ -44,6 +40,11 @@ struct Klient {
 		id = y;
 	}
 };
+
+std::vector<Klient> klienci;
+Ramka ramka;
+StanObiektu stan;
+
 
 void print_ip(int ip)
 {
@@ -66,41 +67,81 @@ int main()
 		unsigned long adres;
 		rozmiar = uni_receive->reciv((char*)&ramka, &adres, sizeof(Ramka));
 		bool found = false;
+
 		switch (ramka.typ) {
 		case typy_ramek::STAN_OBIEKTU:
 			// printf("stan");
 			for (int i = 0; i < klienci.size(); i++) {
-				if (klienci[i] == adres) {
+				if (klienci[i].add == adres) {
 					found = true;
 					break;
 				}
 			}
 
 			if (!found) {
-				klienci.push_back(adres);
-				printf("Connected ");
+				klienci.push_back(Klient(adres, ramka.stan.iID));
+				printf("Connected (%d) ", ramka.stan.iID);
 				print_ip(adres);
 			}
 
 			for (int i = 0; i < klienci.size(); i++) {
 				// printf("To %lu (%d)\n", klienci[i], klienci.size());
-				uni_send->send((char*)&ramka, klienci[i], sizeof(Ramka));
+				uni_send->send((char*)&ramka, klienci[i].add, sizeof(Ramka));
 			}
 			break;
+
 		case typy_ramek::INFO_O_ZAMKNIECIU:
 			stan = ramka.stan;
 
 			for (int i = 0; i < klienci.size(); i++)
 			{
-				if (klienci[i] == adres) {
-					printf("Disconnected ");
-					print_ip(klienci[i]);
-					ramka.typ = INFO_O_ZAMKNIECIU;
-					uni_send->send((char*)&ramka, klienci[i], sizeof(Ramka));
+				ramka.typ = INFO_O_ZAMKNIECIU;
+				uni_send->send((char*)&ramka, klienci[i].add, sizeof(Ramka));
+			}
+
+			for (int i = 0; i < klienci.size(); i++)
+			{
+				if (klienci[i].add == adres) {
+					printf("Disconnected (%d) ", ramka.stan.iID);
+					print_ip(klienci[i].add);
 					klienci.erase(klienci.begin() + i);
 				}
-
 			}
+			break;
+
+		case typy_ramek::OFERTA_ZAMIANY:
+			printf("Oferta zamiany od %d do %d\n", ramka.stan.iID, ramka.idOdbiorcy);
+			for (int i = 0; i < klienci.size(); i++)
+			{
+				if (klienci[i].id == ramka.idOdbiorcy) {
+					uni_send->send((char*)&ramka, klienci[i].add, sizeof(Ramka));
+					printf("wyslalo \n");
+					break;
+				}
+			}
+
+			break;
+		case typy_ramek::OFERTA_AKCEPTACJA:
+		case typy_ramek::OFERTA_ODRZUCENIE:
+			printf("Odpowiedz oferty od %d do %d\n", ramka.stan.iID, ramka.idOdbiorcy);
+			int index1 = -1;
+			int index2 = -1;
+			for (int i = 0; i < klienci.size(); i++)
+			{
+				if (klienci[i].id == ramka.stan.iID) {
+					index1 = i;
+					uni_send->send((char*)&ramka, klienci[i].add, sizeof(Ramka));
+					printf("wyslalo \n");
+				}
+
+				if (klienci[i].id == ramka.idOdbiorcy) {
+					index2 = i;
+				}
+			}
+
+			klienci[index1].id = ramka.idOdbiorcy;
+			klienci[index2].id = ramka.stan.iID;
+
 			break;
 		}
 
