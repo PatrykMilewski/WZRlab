@@ -29,7 +29,7 @@ unicast_net *multi_reciv;         // wsk do obiektu zajmujacego sie odbiorem kom
 unicast_net *multi_send;          //   -||-  wysylaniem komunikatow
 
 unsigned long przychodzacy_adres_IP = 0;
-char *adres_IP = "192.168.0.10";
+char *adres_IP = "192.168.1.138";
 unsigned long serwera_adres_IP = inet_addr(adres_IP);
 
 HANDLE threadReciv;                 // uchwyt w¹tku odbioru komunikatów
@@ -55,14 +55,17 @@ float oddalenie_1 = oddalenie, kat_kam_z_1 = kat_kam_z, oddalenie_2 = oddalenie,
 oddalenie_3 = oddalenie, kat_kam_z_3 = kat_kam_z;
 
 
-enum typy_ramek{ STAN_OBIEKTU, INFO_O_ZAMKNIECIU, OFERTA };
+enum typy_ramek{ STAN_OBIEKTU, INFO_O_ZAMKNIECIU, OFERTA_ZAMIANY, OFERTA_AKCEPTACJA, OFERTA_ODRZUCENIE };
+
+void wyslijPropozycjeZamiany(int ostatniaCyfraID);
+
 
 // rozbudowac, dodac info czy aplikacja zostala zamknieta przez uzytkownika
 struct Ramka                                    // g³ówna struktura s³u¿¹ca do przesy³ania informacji
 {
 	int typ;
 	StanObiektu stan;
-	float wartosc_oferty;
+	int ofertaIDOdbiorcy;
 };
 
 
@@ -96,11 +99,57 @@ DWORD WINAPI WatekOdbioru(void *ptr)
 				CudzeObiekty[IndeksyOb[stan.iID]]->ZmienStan(stan);   // zmiana stanu obiektu obcego 			
 			}
 			break;
-		} // case STAN_OBIEKTU
-		case OFERTA:
+		}
+
+		case OFERTA_AKCEPTACJA:
 		{
+
+			ObiektRuchomy *obiektRuchomy = pMojObiekt;
+			for (int i = 0; i < iLiczbaCudzychOb; i++) {
+				if (CudzeObiekty[i]->iID == ramka.ofertaIDOdbiorcy) {
+					pMojObiekt = CudzeObiekty[i];
+					CudzeObiekty[i] = obiektRuchomy;
+					printf("zamieniono");
+					break;
+				}
+			}
 			break;
 		}
+		case OFERTA_ODRZUCENIE:
+		{
+			printf("odrzucenie oferty zamiany");
+
+			break;
+		}
+		case OFERTA_ZAMIANY:
+		{
+			int msgboxID = MessageBox(
+				NULL,
+				"Zamiana",
+				"Czy chcesz sie zamienic?",
+				MB_OKCANCEL);
+			if (msgboxID == 1){
+				ramka.typ = OFERTA_AKCEPTACJA;
+				multi_send->send((char*)&ramka, serwera_adres_IP, sizeof(Ramka));
+				ObiektRuchomy *obiektRuchomy = pMojObiekt;
+				for (int i = 0; i < iLiczbaCudzychOb; i++) {
+					if (CudzeObiekty[i]->iID == ramka.stan.iID) {
+						pMojObiekt = CudzeObiekty[i];
+						CudzeObiekty[i] = obiektRuchomy;
+						printf("zamieniono");
+						break;
+					}
+				}
+			}
+			else{
+				ramka.typ = OFERTA_ODRZUCENIE;
+				multi_send->send((char*)&ramka, serwera_adres_IP, sizeof(Ramka));
+			}
+			break;
+		}
+
+
+		// case STAN_OBIEKTU
 		case INFO_O_ZAMKNIECIU:          // zwyk³y komunikat tekstowy
 		{
 			stan = ramka.stan;
@@ -366,6 +415,56 @@ void KlawiszologiaSterowania(UINT kod_meldunku, WPARAM wParam, LPARAM lParam)
 			}
 			break;
 		}
+		case '1':
+		{
+			wyslijPropozycjeZamiany(1);
+			break;
+		}
+		case '2':
+		{
+			wyslijPropozycjeZamiany(2);
+			break;
+		}
+		case '3':
+		{
+			wyslijPropozycjeZamiany(3);
+			break;
+		}
+		case '4':
+		{
+			wyslijPropozycjeZamiany(4);
+			break;
+		}
+		case '5':
+		{
+			wyslijPropozycjeZamiany(5);
+			break;
+		}
+		case '6':
+		{
+			wyslijPropozycjeZamiany(6);
+			break;
+		}
+		case '7':
+		{
+			wyslijPropozycjeZamiany(7);
+			break;
+		}
+		case '8':
+		{
+			wyslijPropozycjeZamiany(8);
+			break;
+		}
+		case '9':
+		{
+			wyslijPropozycjeZamiany(9);
+			break;
+		}
+		case '0':
+		{
+			wyslijPropozycjeZamiany(0);
+			break;
+		}
 		case VK_ESCAPE:
 		{
 			SendMessage(okno, WM_DESTROY, 0, 0);
@@ -420,3 +519,28 @@ void KlawiszologiaSterowania(UINT kod_meldunku, WPARAM wParam, LPARAM lParam)
 
 	} // switch po komunikatach
 }
+
+int znajdzGracza(int ostatniaCyfraID) {
+	for (int i = 0; i < iLiczbaCudzychOb; i++) {
+		if (CudzeObiekty[i]->iID % 10 == ostatniaCyfraID) {
+			return CudzeObiekty[i]->iID;
+		}
+	}
+	return -1;
+}
+
+void wyslijPropozycjeZamiany(int ostatniaCyfraID) {
+	printf("Wyslanie propozycji zamiany do: %d", ostatniaCyfraID);
+	Ramka ramka;
+	ramka.typ = OFERTA_ZAMIANY;
+	ramka.stan = pMojObiekt->Stan();
+
+	int idOdbiorcyZnalezione = znajdzGracza(ostatniaCyfraID);
+	if (idOdbiorcyZnalezione == -1)
+		return;
+
+	ramka.ofertaIDOdbiorcy = idOdbiorcyZnalezione;
+	multi_send->send((char*)&ramka, adres_IP, sizeof(Ramka));
+	fclose(f);
+}
+
