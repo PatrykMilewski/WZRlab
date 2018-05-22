@@ -33,8 +33,8 @@ public class BookSellerAgent extends Agent
 
     // Dodanie zachowania obsługującego zamówienie klienta:
     addBehaviour(new PurchaseOrdersServer());
-    
-    addBehaviour(new OfferNegotiateServer());
+
+//    addBehaviour(new OfferNegotiateServer());
   }
 
   // Metoda realizująca zakończenie pracy agenta:
@@ -87,13 +87,53 @@ public class BookSellerAgent extends Agent
       }
     } // Koniec klasy wewnętrznej będącej rozszerzeniem klasy CyclicBehaviour
 
-    class OfferNegotiateServer extends CyclicBehaviour
+//    class OfferNegotiateServer extends CyclicBehaviour
+//    {
+//        int ofertaNum = 1;
+//      public void action()
+//      {
+//        ACLMessage msg = myAgent.receive();
+//        if (msg != null && msg.getPerformative() == ACLMessage.PROPOSE) {
+//          String title = msg.getContent().split(";")[0];
+//          Double priceR = Double.parseDouble(msg.getContent().split(";")[1]);
+//
+//          System.out.println("Agent-sprzedawca "+getAID().getName()+" otrzymał oferte: "+priceR);
+//          ACLMessage reply = msg.createReply();
+//          Integer price = (Integer) catalogue.get(title);
+//          if (price != null) {
+//              if(ofertaNum > 6) {
+//                  reply.setPerformative(ACLMessage.REJECT_PROPOSAL);
+//                  reply.setContent("");
+//                  System.out.println("Agent-sprzedawca "+getAID().getName()+" nie negocjuje dalej.");
+//              } else {
+//                reply.setPerformative(ACLMessage.PROPOSE);
+//                reply.setContent(String.valueOf(price - 3 * ofertaNum));
+//                System.out.println("Agent-sprzedawca "+getAID().getName()+" odpowiada: "+(price - 3 * ofertaNum));
+//                ofertaNum++;
+//              }
+//          }
+//          else {                                              // jeśli tytuł niedostępny
+//            // The requested book is NOT available for sale.
+//            reply.setPerformative(ACLMessage.REFUSE);         // ustalenie typu wiadomości (odmowa)
+//            reply.setContent("tytuł niestety niedostępny");                  // treść wiadomości
+//          }
+//          myAgent.send(reply);                                // wysłanie odpowiedzi
+//        }
+//        else                       // jeśli wiadomość nie nadeszła, lub była niezgodna z szablonem
+//        {
+//          block();                 // blokada metody action() dopóki nie pojawi się nowa wiadomość
+//        }
+//      }
+//    }
+
+    class PurchaseOrdersServer extends CyclicBehaviour
     {
-        int ofertaNum = 1;
+      int ofertaNum = 1;
       public void action()
       {
         ACLMessage msg = myAgent.receive();
-        if (msg != null && msg.getPerformative() == ACLMessage.PROPOSE) {
+
+        if ((msg != null)&&(msg.getPerformative() == ACLMessage.ACCEPT_PROPOSAL)) {
           String title = msg.getContent().split(";")[0];
           Double priceR = Double.parseDouble(msg.getContent().split(";")[1]);
 
@@ -101,40 +141,27 @@ public class BookSellerAgent extends Agent
           ACLMessage reply = msg.createReply();
           Integer price = (Integer) catalogue.get(title);
           if (price != null) {
-              if(ofertaNum > 6) {
-                  reply.setPerformative(ACLMessage.REJECT_PROPOSAL);
-                  reply.setContent("");
-                  System.out.println("Agent-sprzedawca "+getAID().getName()+" nie negocjuje dalej.");
-              } else {
-                reply.setPerformative(ACLMessage.PROPOSE);
-                reply.setContent(String.valueOf(price - 3 * ofertaNum));
-                System.out.println("Agent-sprzedawca "+getAID().getName()+" odpowiada: "+(price - 3 * ofertaNum));
-                ofertaNum++;
-              }
+            if(ofertaNum > 6) {
+              reply.setPerformative(ACLMessage.REJECT_PROPOSAL);
+              reply.setContent("");
+              System.out.println("Agent-sprzedawca "+getAID().getName()+" nie negocjuje dalej.");
+            } else {
+              reply.setPerformative(ACLMessage.PROPOSE);
+              reply.setContent(String.valueOf(price - 3 * ofertaNum));
+              System.out.println("Agent-sprzedawca "+getAID().getName()+" odpowiada: "+(price - 3 * ofertaNum));
+              ofertaNum++;
+            }
           }
           else {                                              // jeśli tytuł niedostępny
             // The requested book is NOT available for sale.
             reply.setPerformative(ACLMessage.REFUSE);         // ustalenie typu wiadomości (odmowa)
             reply.setContent("tytuł niestety niedostępny");                  // treść wiadomości
           }
-          myAgent.send(reply);                                // wysłanie odpowiedzi
+          myAgent.send(reply);
         }
-        else                       // jeśli wiadomość nie nadeszła, lub była niezgodna z szablonem
+        else if ((msg != null)&&(msg.getPerformative() == ACLMessage.ACCEPT_PROPOSAL))
         {
-          block();                 // blokada metody action() dopóki nie pojawi się nowa wiadomość
-        }
-      }
-    }
-
-    class PurchaseOrdersServer extends CyclicBehaviour
-    {
-      public void action()
-      {
-        ACLMessage msg = myAgent.receive();
-
-        if ((msg != null)&&(msg.getPerformative() == ACLMessage.ACCEPT_PROPOSAL))
-        {
-          // Message received. Process it          
+          // Message received. Process it
           ACLMessage reply = msg.createReply();
           String title = msg.getContent();
           reply.setPerformative(ACLMessage.INFORM);
