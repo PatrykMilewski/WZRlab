@@ -26,11 +26,11 @@ public class BookBuyerAgent extends Agent {
     private AID[] sellerAgents = {
       new AID("seller1", AID.ISLOCALNAME),
       new AID("seller2", AID.ISLOCALNAME)};
-    
+
     // Inicjalizacja klasy agenta:
     protected void setup()
     {
-     
+
       //doWait(5000);   // Oczekiwanie na uruchomienie agentów sprzedających
 
       System.out.println("Witam! Agent-kupiec "+getAID().getName()+" (wersja h 2017/18) jest gotów!");
@@ -43,7 +43,7 @@ public class BookBuyerAgent extends Agent {
         System.out.println("Zamierzam kupić książkę zatytułowaną "+targetBookTitle);
 
         addBehaviour(new RequestPerformer());  // dodanie głównej klasy zachowań - kod znajduje się poniżej
-       
+
       }
       else
       {
@@ -65,7 +65,7 @@ public class BookBuyerAgent extends Agent {
     */
     private class RequestPerformer extends Behaviour
     {
-       
+
       private AID bestSeller;     // agent sprzedający z najkorzystniejszą ofertą
       private int bestPrice;      // najlepsza cena
       private Double wantedPrice;
@@ -100,7 +100,7 @@ public class BookBuyerAgent extends Agent {
                                    MessageTemplate.MatchInReplyTo(cfp.getReplyWith()));
           step = 1;     // przejście do kolejnego kroku
           break;
-            
+
         case 1:      // odbiór ofert sprzedaży/odmowy od agentów-sprzedawców
           ACLMessage reply = myAgent.receive(mt);      // odbiór odpowiedzi
           if (reply != null)
@@ -132,8 +132,8 @@ public class BookBuyerAgent extends Agent {
             ACLMessage order = new ACLMessage(ACLMessage.PROPOSE);
             order.addReceiver(bestSeller);
             order.setContent(targetBookTitle + ";" + wantedPrice.toString());
-            // order.setConversationId("book-trade");
-            // order.setReplyWith("order"+System.currentTimeMillis());
+            order.setConversationId("book-trade");
+            order.setReplyWith("neg"+System.currentTimeMillis());
             System.out.println(order.toString());
             myAgent.send(order);
             mt = MessageTemplate.and(MessageTemplate.MatchConversationId("book-trade"),
@@ -165,7 +165,7 @@ public class BookBuyerAgent extends Agent {
             }
 
             break;
-           
+
         case 4:      // wysłanie zamówienia do sprzedawcy, który złożył najlepszą ofertę
           ACLMessage order = new ACLMessage(ACLMessage.ACCEPT_PROPOSAL);
           order.addReceiver(bestSeller);
@@ -178,7 +178,7 @@ public class BookBuyerAgent extends Agent {
                                    MessageTemplate.MatchInReplyTo(order.getReplyWith()));
           step = 5;
           break;
-            
+
         case 5:      // odbiór odpowiedzi na zamównienie
           reply = myAgent.receive(mt);
           if (reply != null)

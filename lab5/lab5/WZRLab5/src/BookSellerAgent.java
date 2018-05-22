@@ -133,7 +133,7 @@ public class BookSellerAgent extends Agent
       {
         ACLMessage msg = myAgent.receive();
 
-        if ((msg != null)&&(msg.getPerformative() == ACLMessage.ACCEPT_PROPOSAL)) {
+        if ((msg != null)&&(msg.getPerformative() == ACLMessage.PROPOSE)) {
           String title = msg.getContent().split(";")[0];
           Double priceR = Double.parseDouble(msg.getContent().split(";")[1]);
 
