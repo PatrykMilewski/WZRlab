@@ -1,0 +1,2 @@
+AlgGenetyczny
+AlgGenetyczny$Rozw

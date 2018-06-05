@@ -1,0 +1,11 @@
+TypyStrategii
+Strategia
+MobileAgent$5
+MobileAgent$Watek_AG
+StanInagroda
+MobileAgent$1
+MobileAgent$ReceiveCommands
+MobileAgent$2
+MobileAgent
+MobileAgent$3
+MobileAgent$4
